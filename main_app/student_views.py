@@ -6,12 +6,14 @@ from django.views.decorators.csrf import csrf_exempt
 from datetime import datetime
 import json, math
 
-from .models import (Student, NotificationStudent, LeaveReportStudent,
-                     FeedbackStudent, Attendance, AttendanceReport, Subject, Course, StudentResult)
+from .models import (
+    Student, NotificationStudent, LeaveReportStudent,
+    FeedbackStudent, Attendance, AttendanceReport, Subject, Course, StudentResult
+)
 
-
-# STUDENT VIEW HOME
-
+# -----------------------------
+# STUDENT HOME
+# -----------------------------
 def student_home(request):
     student = get_object_or_404(Student, admin=request.user)
     subjects = Subject.objects.filter(course=student.course)
@@ -30,8 +32,12 @@ def student_home(request):
     data_absent = []
     for subject in subjects:
         attendance = Attendance.objects.filter(subject=subject)
-        present_count = AttendanceReport.objects.filter(attendance__in=attendance, student=student, status=True).count()
-        absent_count = AttendanceReport.objects.filter(attendance__in=attendance, student=student, status=False).count()
+        present_count = AttendanceReport.objects.filter(
+            attendance__in=attendance, student=student, status=True
+        ).count()
+        absent_count = AttendanceReport.objects.filter(
+            attendance__in=attendance, student=student, status=False
+        ).count()
         subject_name.append(subject.name)
         data_present.append(present_count)
         data_absent.append(absent_count)
@@ -49,14 +55,10 @@ def student_home(request):
     }
     return render(request, "student_template/home_content.html", context)
 
-
-
+# -----------------------------
 # STUDENT APPLY LEAVE
-
+# -----------------------------
 def student_apply_leave(request):
-    """
-    Talaba ta'til arizasi yuborishi
-    """
     student = get_object_or_404(Student, admin=request.user)
     leave_history = LeaveReportStudent.objects.filter(student=student).order_by('-created_at')
 
@@ -77,14 +79,10 @@ def student_apply_leave(request):
     }
     return render(request, "student_template/student_apply_leave.html", context)
 
-
-
+# -----------------------------
 # STUDENT FEEDBACK
-
+# -----------------------------
 def student_feedback(request):
-    """
-    Talaba fikr-mulohaza yuborishi va javoblarini ko'rishi
-    """
     student = get_object_or_404(Student, admin=request.user)
     feedback_history = FeedbackStudent.objects.filter(student=student).order_by('-created_at')
 
@@ -104,15 +102,10 @@ def student_feedback(request):
     }
     return render(request, "student_template/student_feedback.html", context)
 
-
-
+# -----------------------------
 # STUDENT VIEW NOTIFICATIONS
-
-
+# -----------------------------
 def student_view_notification(request):
-    """
-    Talabaga kelgan bildirishnomalarni ko'rsatish
-    """
     student = get_object_or_404(Student, admin=request.user)
     notifications = NotificationStudent.objects.filter(student=student).order_by('-created_at')
 
@@ -122,10 +115,9 @@ def student_view_notification(request):
     }
     return render(request, "student_template/student_view_notification.html", context)
 
-
-
-# STUDENT VIEW ATTENDANCE (AJRATILGAN JSON)
-
+# -----------------------------
+# STUDENT VIEW ATTENDANCE
+# -----------------------------
 @csrf_exempt
 def student_view_attendance(request):
     student = get_object_or_404(Student, admin=request.user)
@@ -151,10 +143,9 @@ def student_view_attendance(request):
         except Exception:
             return JsonResponse([], safe=False)
 
-
-
+# -----------------------------
 # STUDENT VIEW RESULT
-
+# -----------------------------
 def student_view_result(request):
     student = get_object_or_404(Student, admin=request.user)
     results = StudentResult.objects.filter(student=student).order_by('-created_at')

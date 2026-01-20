@@ -1,5 +1,5 @@
 from django.urls import path
-<<<<<<< HEAD
+
 from main_app.EditResultView import EditResultView
 from . import hod_views, staff_views, student_views, views
 
@@ -47,9 +47,7 @@ from . import hod_views, staff_views, student_views, views
 #admin send student notification
 #admin send staff notification
 
-=======
 from . import staff_views, student_views
->>>>>>> d0e6680 (Update urls for backend features)
 
 urlpatterns = [
     # path("", views.login_page, name='login_page'),
