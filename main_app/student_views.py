@@ -12,6 +12,27 @@ from .models import (
 )
 
 
+# student home
+#student apply leave
+#student feedback
+#student view notification <- this is not needed, anything related to notifications
+#student view attendance
+# stuednt view result
+
+
+
+
+
+# Qilinishi kerak
+
+#student view profile
+#student fcm token
+
+
+
+
+
+
 def student_home(request):
     student = get_object_or_404(Student, admin=request.user)
     subjects = Subject.objects.filter(course=student.course)
@@ -95,18 +116,6 @@ def student_feedback(request):
         "page_title": "Student Feedback"
     }
     return render(request, "student_template/student_feedback.html", context)
-
-
-def student_view_notification(request):
-    student = get_object_or_404(Student, admin=request.user)
-    notifications = NotificationStudent.objects.filter(student=student).order_by('-created_at')
-
-    context = {
-        "notifications": notifications,
-        "page_title": "View Notifications"
-    }
-    return render(request, "student_template/student_view_notification.html", context)
-
 
 @csrf_exempt
 def student_view_attendance(request):
