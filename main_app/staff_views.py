@@ -8,7 +8,26 @@ from .models import (
 )
 
 
-def staff_dashboard(request):
+# staff home
+# staff take attendance
+# get studentes
+# save attendance
+# staff update attendance
+# get student attendance
+# update attendance
+# staff apply leave
+# staff feedback 
+# staff view profile
+# staff fcm token
+# staff view notification <- not needed, (anything related to notifications) 
+# staff add result
+# fetch student result
+
+
+
+
+
+def staff_dashboard(request): # chala
     staff = get_object_or_404(Staff, admin=request.user)
 
     students_count = Student.objects.filter(course=staff.course).count()
@@ -23,8 +42,7 @@ def staff_dashboard(request):
     }
     return render(request, "staff_template/home_content.html", context)
 
-
-def staff_leave_request(request):
+def staff_leave_request(request): # staff apply leave bolishi kerak
     staff = get_object_or_404(Staff, admin=request.user)
     leave_history = LeaveReportStaff.objects.filter(staff=staff)
 
@@ -49,7 +67,6 @@ def staff_leave_request(request):
         "page_title": "Apply Leave"
     })
 
-
 def staff_send_feedback(request):
     staff = get_object_or_404(Staff, admin=request.user)
     feedbacks = FeedbackStaff.objects.filter(staff=staff)
@@ -73,7 +90,6 @@ def staff_send_feedback(request):
         "page_title": "Staff Feedback"
     })
 
-
 def staff_notifications(request):
     staff = get_object_or_404(Staff, admin=request.user)
     notifications = NotificationStaff.objects.filter(staff=staff)
@@ -82,7 +98,6 @@ def staff_notifications(request):
         "notifications": notifications,
         "page_title": "Notifications"
     })
-
 
 def staff_profile_view(request):
     staff = get_object_or_404(Staff, admin=request.user)
