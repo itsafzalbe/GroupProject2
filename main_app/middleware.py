@@ -1,33 +1,35 @@
-from django.utils.deprecation import MiddlewareMixin
-from django.urls import reverse
 from django.shortcuts import redirect
+from django.urls import reverse
 
 
-class LoginCheckMiddleWare(MiddlewareMixin):
-    def process_view(self, request, view_func, view_args, view_kwargs):
-        modulename = view_func.__module__
+class LoginCheckMiddleWare:
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
         user = request.user
-        if user.is_authenticated:
-            if user.user_type == '1':
-                if modulename == 'main_app.student_views':
-                    return redirect(reverse('admin_home'))
-                
-            elif user.user_type == '2':
-                if modulename == 'main_app.student_views' or modulename == 'main_app.hod_views':
-                    return redirect(reverse('staff_home'))
-            
-            elif user.user_type == '3':
-                if modulename == 'main_app.hod_views' or modulename == 'main_app.staff_views':
-                    return redirect(reverse('student_home'))
-        
-            else:
-                return redirect(reverse('login_page'))
-            
-        else:
-            if request.path == reverse('login_page') or modulename == 'django.contrib.auth.views' or request.path == reverse('user_login'):
-                pass
-            else:
-                 return redirect(reverse('login_page'))
+        path = request.path
 
+        if path in [reverse('login_page'), reverse('user_login'), reverse('user_logout')]:
+            return self.get_response(request)
 
+        if path.startswith('/admin/'):
+            return self.get_response(request)
 
+        if not user.is_authenticated:
+            return redirect(reverse('login_page'))
+
+        if user.user_type == '1': 
+            if path.startswith('/student/') or path.startswith('/staff/'):
+                return redirect(reverse('admin_home'))
+
+        elif user.user_type == '2':
+            if path.startswith('/admin/') or path.startswith('/student/'):
+                return redirect(reverse('staff_home'))
+
+        elif user.user_type == '3':
+            if path.startswith('/admin/') or path.startswith('/staff/'):
+                return redirect(reverse('student_home'))
+
+        return self.get_response(request)
+    

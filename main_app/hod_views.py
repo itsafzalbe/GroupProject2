@@ -219,15 +219,15 @@ def add_session(request):
 
 
 def manage_staff(request):
-    allStaff = CustomUser.objects.filter(user_type = 2)
+    staffs = CustomUser.objects.filter(user_type = "2")
     context = {
-        'allStaff': allStaff,
+        'allStaff': staffs,
         'page_title': "Manage Staff"
     }
     return render(request, "hod_template/manage_staff.html", context)
 
 def manage_student(request):
-    students = CustomUser.objects.filter(user_type = 3)
+    students = CustomUser.objects.filter(user_type = "1")
     context = {
         'students': students,
         'page_title': "Manage Students"

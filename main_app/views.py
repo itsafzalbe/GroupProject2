@@ -56,11 +56,11 @@ def doLogin(request):
     if user is not None:
         login(request, user)
 
-        if user.user_type == '1':        # Admin
+        if user.user_type == '1': 
             return redirect('/admin/')
-        elif user.user_type == '2':      # Staff
+        elif user.user_type == '2': 
             return redirect(reverse("staff_home"))
-        else:                            # Student
+        else:              
             return redirect(reverse("student_home"))
     else:
         messages.error(request, "Invalid email or password")
