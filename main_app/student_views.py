@@ -35,56 +35,59 @@ def student_view_profile(request):
         request.FILES or None,
         instance=student
     )
+    context = {
+        'form': form,
+        'page_title': 'View/Edit Profile'
+    }
 
     if request.method == 'POST':
-        if form.is_valid():
-            admin = student.admin
-            admin.first_name = form.cleaned_data.get('first_name')
-            admin.last_name = form.cleaned_data.get('last_name')
-            admin.address = form.cleaned_data.get('address')
-            admin.gender = form.cleaned_data.get('gender')
+        try:
+            if form.is_valid():
+                first_name = form.cleaned_data.get('first_name')
+                last_name = form.cleaned_data.get('last_name')
+                password = form.cleaned_data.get('password') or None
+                address = form.cleaned_data.get('address')
+                gender = form.cleaned_data.get('gender')
+                passport = request.FILES.get('profile_pic') or None
+                admin = student.admin
+                if password != None:
+                    admin.set_password(password)
 
-            password = form.cleaned_data.get('password')
-            if password:
-                admin.set_password(password)
-
-            if request.FILES.get('profile_pic'):
-                fs = FileSystemStorage()
-                file = fs.save(
-                    request.FILES['profile_pic'].name,
-                    request.FILES['profile_pic']
-                )
-                admin.profile_pic = fs.url(file)
-
-            admin.save()
-            student.save()
-
-            messages.success(request, "Profile Updated Successfully")
-            return redirect(reverse('student_view_profile'))
-
-        messages.error(request, "Invalid Data Provided")
-
-    return render(request, 'student_template/student_view_profile.html', {
-        'form': form,
-        'page_title': 'My Profile'
-    })
+                if passport != None:
+                    fs = FileSystemStorage()
+                    filename = fs.save(passport.name, passport)
+                    passport_url = fs.url(filename)
+                    admin.profile_pic = passport_url
+                admin.first_name = first_name
+                admin.last_name = last_name
+                admin.address = address
+                admin.gender = gender
+                admin.save()
+                student.save()
+                messages.success(request, "Profile Updated!")
+                return redirect(reverse('student_view_profile'))
+            else:
+                messages.error(request, "Invalid Data Provided")
+        except Exception as e:
+            messages.error(request, "Error Occured While Updating Profile " + str(e))
+    return render(request, 'student_template/student_view_profile.html', context)
 
 
 @csrf_exempt
 def student_fcmtoken(request):
+    token = request.POST.get('token')
+    student_user = get_object_or_404(CustomUser, id = request.user.id)
     try:
-        user = get_object_or_404(CustomUser, id=request.user.id)
-        user.fcm_token = request.POST.get('token')
-        user.save()
+        student_user.fcm_token = token
+        student_user.save()
         return HttpResponse("True")
-    except Exception:
+    except Exception as e:
         return HttpResponse("False")
 
 
 def student_home(request):
     student = get_object_or_404(Student, admin=request.user)
-    subjects = Subject.objects.filter(course=student.course)
-    total_subject = subjects.count()
+    total_subject = Subject.objects.filter(course=student.course).count()
     total_attendance = AttendanceReport.objects.filter(student=student).count()
     total_present = AttendanceReport.objects.filter(student=student, status=True).count()
 
@@ -92,11 +95,12 @@ def student_home(request):
         percent_present = percent_absent = 0
     else:
         percent_present = math.floor((total_present / total_attendance) * 100)
-        percent_absent = 100 - percent_present
+        percent_absent = math.ceil(100 - percent_present)
 
     subject_name = []
     data_present = []
     data_absent = []
+    subjects = Subject.objects.filter(course=student.course)
     for subject in subjects:
         attendance = Attendance.objects.filter(subject=subject)
         present_count = AttendanceReport.objects.filter(
@@ -118,51 +122,58 @@ def student_home(request):
         'data_present': data_present,
         'data_absent': data_absent,
         'data_name': subject_name,
-        'page_title': 'Student Home'
+        'page_title': 'Student Homepage'
     }
     return render(request, "student_template/home_content.html", context)
 
 
 def student_apply_leave(request):
-    student = get_object_or_404(Student, admin=request.user)
-    leave_history = LeaveReportStudent.objects.filter(student=student).order_by('-created_at')
-
-    if request.method == "POST":
-        date = request.POST.get('leave_date')
-        message = request.POST.get('leave_message')
-        try:
-            leave = LeaveReportStudent(student=student, date=date, message=message, status=0)
-            leave.save()
-            messages.success(request, "Ta'til arizasi yuborildi.")
-            return redirect('student_apply_leave')
-        except:
-            messages.error(request, "Xatolik yuz berdi!")
-
+    form = LeaveReportStudentForm(request.POST or None)
+    student = get_object_or_404(Student, admin_id=request.user.id)
     context = {
-        "leave_history": leave_history,
-        "page_title": "Apply Leave"
+        'form': form,
+        'leave_history': LeaveReportStudent.objects.filter(student=student),
+        'page_title': 'Apply for Leave'
     }
+    if request.method == 'POST':
+        if form.is_valid():
+            try:
+                obj = form.save(commit=False)
+                obj.student = student
+                obj.save()
+                messages.success(
+                    request, "Application for leave has been submitted for review")
+                return redirect(reverse('student_apply_leave'))
+            except Exception:
+                messages.error(request, "Could not submit")
+        else:
+            messages.error(request, "Form has errors!")
     return render(request, "student_template/student_apply_leave.html", context)
 
 
 def student_feedback(request):
-    student = get_object_or_404(Student, admin=request.user)
-    feedback_history = FeedbackStudent.objects.filter(student=student).order_by('-created_at')
+    form = FeedbackStudentForm(request.POST or None)
+    student = get_object_or_404(Student, admin_id=request.user.id)
+    context = {
+        'form': form,
+        'feedbacks': FeedbackStudent.objects.filter(student=student),
+        'page_title': 'Student Feedback'
+
+    }
 
     if request.method == "POST":
-        feedback = request.POST.get('feedback_msg')
-        try:
-            add_feedback = FeedbackStudent(student=student, feedback=feedback, reply="")
-            add_feedback.save()
-            messages.success(request, "Fikr-mulohaza yuborildi.")
-            return redirect('student_feedback')
-        except:
-            messages.error(request, "Xatolik yuz berdi!")
-
-    context = {
-        "feedback_history": feedback_history,
-        "page_title": "Student Feedback"
-    }
+        if form.is_valid():
+            try:
+                obj = form.save(commit=False)
+                obj.student = student
+                obj.save()
+                messages.success(
+                    request, "Feedback submitted for review")
+                return redirect(reverse('student_feedback'))
+            except Exception as e:
+                messages.error(request, "Xatolik yuz berdi!")
+        else:
+            messages.error(request, "Form has errors")
     return render(request, "student_template/student_feedback.html", context)
 
 
@@ -171,8 +182,9 @@ def student_view_attendance(request):
     student = get_object_or_404(Student, admin=request.user)
 
     if request.method != 'POST':
+        course = get_object_or_404(Course, id=student.course.id)
         context = {
-            'subjects': Subject.objects.filter(course=student.course),
+            'subjects': Subject.objects.filter(course=course),
             'page_title': 'View Attendance'
         }
         return render(request, "student_template/student_view_attendance.html", context)
@@ -187,14 +199,21 @@ def student_view_attendance(request):
             attendance = Attendance.objects.filter(date__range=(start_date, end_date), subject=subject)
             attendance_reports = AttendanceReport.objects.filter(attendance__in=attendance, student=student)
             data = [{"date": str(r.attendance.date), "status": r.status} for r in attendance_reports]
-            return JsonResponse(data, safe=False)
-        except Exception:
-            return JsonResponse([], safe=False)
+            json_data = []
+            for report in attendance_reports:
+                data = {
+                    "date":  str(report.attendance.date),
+                    "status": report.status
+                }
+                json_data.append(data)
+            return JsonResponse(json.dumps(json_data), safe=False)
+        except Exception as e:
+            return None
 
 
 def student_view_result(request):
     student = get_object_or_404(Student, admin=request.user)
-    results = StudentResult.objects.filter(student=student).order_by('-created_at')
+    results = StudentResult.objects.filter(student=student)
     context = {
         'results': results,
         'page_title': 'View Results'

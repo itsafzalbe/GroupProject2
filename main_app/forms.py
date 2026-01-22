@@ -70,7 +70,7 @@ class CustomUserForm(FormSettings):
         return formEmail
     class Meta:
         model = CustomUser
-        fields = ['first_name', 'last_name', 'email', 'gender', 'password', 'prifofile_pic', 'address']
+        fields = ['first_name', 'last_name', 'email', 'gender', 'password', 'profile_pic', 'address']
 
 class StudentForm(CustomUserForm):
     def __init__(self, *args, **kwargs):
