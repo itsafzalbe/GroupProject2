@@ -7,7 +7,7 @@ from django.views.decorators.csrf import csrf_exempt
 from datetime import datetime
 import json, math
 
-from .forms import StudentEditForm
+from .forms import *
 from .models import (
     Student, NotificationStudent, LeaveReportStudent,
     FeedbackStudent, Attendance, AttendanceReport, Subject, Course, StudentResult, CustomUser
