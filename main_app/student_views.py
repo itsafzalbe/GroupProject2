@@ -1,36 +1,84 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib import messages
 from django.core.files.storage import FileSystemStorage
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
+from django.urls import reverse
 from django.views.decorators.csrf import csrf_exempt
 from datetime import datetime
 import json, math
 
+from .forms import StudentEditForm
 from .models import (
     Student, NotificationStudent, LeaveReportStudent,
-    FeedbackStudent, Attendance, AttendanceReport, Subject, Course, StudentResult
+    FeedbackStudent, Attendance, AttendanceReport, Subject, Course, StudentResult, CustomUser
 )
 
 
 # student home
-#student apply leave
-#student feedback
-#student view notification <- this is not needed, anything related to notifications
-#student view attendance
+# student apply leave
+# student feedback
+# student view notification <- this is not needed, anything related to notifications
+# student view attendance
 # stuednt view result
-
-
-
 
 
 # Qilinishi kerak
 
-#student view profile
-#student fcm token
+# student view profile
+# student fcm token
 
 
+def student_view_profile(request):
+    student = get_object_or_404(Student, admin=request.user)
+    form = StudentEditForm(
+        request.POST or None,
+        request.FILES or None,
+        instance=student
+    )
+
+    if request.method == 'POST':
+        if form.is_valid():
+            admin = student.admin
+            admin.first_name = form.cleaned_data.get('first_name')
+            admin.last_name = form.cleaned_data.get('last_name')
+            admin.address = form.cleaned_data.get('address')
+            admin.gender = form.cleaned_data.get('gender')
+
+            password = form.cleaned_data.get('password')
+            if password:
+                admin.set_password(password)
+
+            if request.FILES.get('profile_pic'):
+                fs = FileSystemStorage()
+                file = fs.save(
+                    request.FILES['profile_pic'].name,
+                    request.FILES['profile_pic']
+                )
+                admin.profile_pic = fs.url(file)
+
+            admin.save()
+            student.save()
+
+            messages.success(request, "Profile Updated Successfully")
+            return redirect(reverse('student_view_profile'))
+
+        messages.error(request, "Invalid Data Provided")
+
+    return render(request, 'student_template/student_view_profile.html', {
+        'form': form,
+        'page_title': 'My Profile'
+    })
 
 
+@csrf_exempt
+def student_fcmtoken(request):
+    try:
+        user = get_object_or_404(CustomUser, id=request.user.id)
+        user.fcm_token = request.POST.get('token')
+        user.save()
+        return HttpResponse("True")
+    except Exception:
+        return HttpResponse("False")
 
 
 def student_home(request):
@@ -116,6 +164,7 @@ def student_feedback(request):
         "page_title": "Student Feedback"
     }
     return render(request, "student_template/student_feedback.html", context)
+
 
 @csrf_exempt
 def student_view_attendance(request):
